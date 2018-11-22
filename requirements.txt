@@ -1,0 +1,4 @@
+XlsxWriter==1.1.2
+matplotlib==2.0.2
+numpy==1.14.2
+requests==2.18.4
