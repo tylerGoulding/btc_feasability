@@ -7,8 +7,7 @@ btc_feasability
 
 * Python
 	* If you are on a Mac, python is pre-installed
-		* Open up a terminal and run:
-		* `sudo apt install python python-dev` 
+		* Open up a terminal (CMD+<space> and type terminal) and run:
 		* `git clone https://github.com/tylerGoulding/btc_feasability.git`
 		*  `cd btc_feasability`
 		* `pip install requirements.txt`
