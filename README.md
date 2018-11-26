@@ -10,13 +10,13 @@ btc_feasability
 		* Open up a terminal (CMD+<space> and type terminal) and run:
 		* `git clone https://github.com/tylerGoulding/btc_feasability.git`
 		*  `cd btc_feasability`
-		* `pip install requirements.txt`
+		* `pip install -r requirements.txt`
 	* If you are on a Linux, run the following:
 		* Open up a terminal and run:
 		* `sudo apt install python python-dev` 
 		* `git clone https://github.com/tylerGoulding/btc_feasability.git`
 		*  `cd btc_feasability`
-		* `pip install requirements.txt`
+		* `pip install -r requirements.txt`
 	* If you are on a Windows, IDK, I'll figure that out later.
 
 ## Usage
