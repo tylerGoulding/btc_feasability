@@ -16,13 +16,16 @@ class BTC:
     halving_date = datetime.datetime(2020, 4, 22)
     
     def __init__(self, date, block_size=12.5, growth = 'linear', 
-                       lin_slope = 5000,  log_slope = 9E9,
-                       pool_hash = 0,     pool_fee = 0, 
+                       lin_slope = 50000,  log_slope = 9E9,
+                       pool_hash =  1200,     pool_fee = 0, 
+                       pool_growth = 0, ex_rate = 'latest',
+                       ex_growth = 0,
                        trans_fee = 0,     trans_growth =0):
         self.BLOCK_SIZE = block_size
         self.base_transaction_fee = trans_fee #BTC
         self.transaction_fee = self.base_transaction_fee
         self.transaction_fee_growth = trans_growth
+        self.pool_growth = pool_growth
         # hashrate changes so much, get the last week and average to get an idea
         try:
             hashrate_json = requests.get("https://api.blockchain.info/charts/hash-rate?timespan=1week&format=json",timeout = .1).json()
@@ -36,12 +39,15 @@ class BTC:
 
 
         # Grab the latest exchange
-        try:
-            exc_rate = requests.get('https://blockchain.info/ticker')
-            # Turn the JSON into something useful
-            self.base_exchange_rate = float(str(exc_rate.json()['USD']['last']))
-        except:
-            self.base_exchange_rate = 6000
+        if (ex_rate == 'latest'):
+            try:
+                exc_rate = requests.get('https://blockchain.info/ticker')
+                # Turn the JSON into something useful
+                self.base_exchange_rate = float(str(exc_rate.json()['USD']['last']))
+            except:
+                self.base_exchange_rate = 6000
+        else:
+            self.base_exchange_rate = ex_rate
 
         self.exchange_rate = self.base_exchange_rate
         self.base_slushpool_hash = pool_hash
@@ -68,7 +74,7 @@ class BTC:
             BTC.halving_date = BTC.halving_date + datetime.timedelta(days=1458.333)
             self.BLOCK_SIZE = self.BLOCK_SIZE/2.
         if (self.growth == 'linear'):
-            self.slushpool_hash = self.base_slushpool_hash + 1200*self.current_age 
+            self.slushpool_hash = self.base_slushpool_hash + self.pool_growth*self.current_age 
             self.totalHashrate = self.base_hashrate + self.lin_slope*self.current_age + hash_noise
         elif (self.growth == 'log'):
             self.totalHashrate = self.base_hashrate + self.log_slope*np.log(self.current_age) + hash_noise

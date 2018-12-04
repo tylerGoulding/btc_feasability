@@ -169,13 +169,16 @@ class Operation:
         return "Operation [Rigs = {}; Miners = {}]".format(len(self.rigs), sum([(r.current_capacity)for r in self.rigs]))
 
     def __init__(self, start_date, initial_investment, total_miners, 
-                cost_per_kWh = .12,
+                cost_per_kWh = .03,
                 noEcost = [],
                 btc_growth = "linear",
-                btc_linear_slope = 5000,
+                btc_linear_slope = 50000,
                 btc_log_slope = 9E9,
                 btc_pool_hash = 56611000,
                 btc_pool_fee = 0.01,
+                btc_pool_growth = 1200, #1200
+                btc_exch_rate = 'latest',
+                btc_exch_growth = 10,
                 btc_avg_transaction_fee = 0.415,
                 btc_transaction_fee_growth = 0.0005,
                 max_cap = 360, min_batch_order = 24, 
@@ -187,8 +190,9 @@ class Operation:
         self.max_cap = max_cap;
         self.date = start_date
         self.dates = [start_date]
-        self.bitcoin = BTC(start_date, growth = btc_growth, pool_hash = btc_pool_hash,
-                            pool_fee = btc_pool_fee,
+        self.bitcoin = BTC(start_date, growth = btc_growth, lin_slope=btc_linear_slope, pool_hash = btc_pool_hash,
+                            pool_fee = btc_pool_fee, pool_growth = btc_pool_growth,
+                            ex_rate = btc_exch_rate,
                             trans_fee = btc_avg_transaction_fee,
                             trans_growth = btc_transaction_fee_growth)
         self.btc_exc = [self.bitcoin.exchange_rate]
@@ -207,7 +211,6 @@ class Operation:
         self.cost = [initial_investment]
         self.daily_revenue = [0]
         self.monthly_revenue = {}
-
 
         self.revenue = [0]
         self.daily_net = [self.revenue[0]-self.cost[0]]
@@ -310,7 +313,7 @@ class Operation:
             daily_hardware_costs = 0
             daily_active_miners = 0
 
-            if 1:#((self.date < FIRST_HALVING) or (self.date.month <= 4) or (self.date.month >= 11)):
+            if ((self.date < FIRST_HALVING) or (self.date.month in self.noEcost)):
                 for r in self.rigs:
                     kwhCost = self.cost_per_kWh
                     if (self.date.month in self.noEcost):
@@ -333,6 +336,7 @@ class Operation:
             # print "daily_electric_cost: ", daily_electric_cost
             self.daily_cost[-1] += (daily_electric_cost)
             self.daily_revenue.append(self.bitcoin.get_daily_rev(daily_total_hashrate))
+
             self.daily_net.append(self.daily_revenue[-1]-self.daily_cost[-1]);
             if (self.daily_active_miners[-1] == 0):
                 self.daily_per_miner_rev.append(0);
@@ -343,6 +347,7 @@ class Operation:
                 self.daily_per_miner_cost.append(daily_electric_cost/self.daily_active_miners[-1])
                 self.daily_per_miner_net.append((self.daily_revenue[-1]-daily_electric_cost)/self.daily_active_miners[-1])
 
+            print self.daily_per_miner_cost[-1]
             self.net = self.get_cum_sum(d = "net")[-1]
 
             key = datetime.datetime(self.date.year,self.date.month,1)
@@ -448,7 +453,7 @@ class Operation:
 
 
 def main():
-    ScrubGrass = Operation(datetime.datetime.now(), 0,  24, max_cap = 360, min_batch_order = 24, verbose = False)
+    ScrubGrass = Operation(datetime.datetime.now(), 0,  24,btc_exch_rate = 6000, max_cap = 360, min_batch_order = 24, verbose = False)
     # progress 4 days just to get us to a pretty date.
     ScrubGrass.tick(1)
 
@@ -495,7 +500,7 @@ def main():
 
     print ScrubGrass.date
     ScrubGrass.generateExcel("test.xlsx")
-    return
+    # return
     plt.ion()
 
     ############################################################################
@@ -570,7 +575,7 @@ def main():
     ###############  Plotting Money related things #############################
     ############################################################################
     fig, ax = plt.subplots()
-    ax.xaxis.set_major_locator(MonthLocator())
+    ax.xaxis.set_major_locator(MonthLocator(interval=6))
     ax.xaxis.set_major_formatter(DateFormatter('%Y-%m'))
     ax.fmt_xdata = DateFormatter('%Y-%m')
     fig.autofmt_xdate()
@@ -598,26 +603,28 @@ def main():
     ############################################################################
     ###############  Plotting Money related things #############################
     ############################################################################
-    fig, ax = plt.subplots()
+    fig, ax_dpm = plt.subplots()
     plt.xticks(rotation=60)
 
-    ax.xaxis.set_major_locator(MonthLocator())
-    ax.xaxis.set_major_formatter(DateFormatter('%Y-%m'))
-    ax.fmt_xdata = DateFormatter('%Y-%m')
+    ax_dpm.xaxis.set_major_locator(MonthLocator(interval=4))
+    ax_dpm.xaxis.set_major_formatter(DateFormatter('%Y-%m'))
+    ax_dpm.fmt_xdata = DateFormatter('%Y-%m')
+    # plt.locator_params(axis='x', nbins=12)
+
     fig.autofmt_xdate()
 
-    plt.title("Daily Per miner returns")
-    plt.xlabel("Date")
-    plt.ylabel("USD")
-    plt.plot(ScrubGrass.dates, ScrubGrass.daily_per_miner_rev, 'g-', linewidth=1, label="Revenue")
-    plt.plot(ScrubGrass.dates, -np.array(ScrubGrass.daily_per_miner_cost), 'r-', linewidth=1, label="Cost")
-    plt.plot(ScrubGrass.dates, ScrubGrass.daily_per_miner_net, 'b-', linewidth=1, label="Net")
-    ax.legend()
+    ax_dpm.set_title("Daily Per miner returns")
+    ax_dpm.set_xlabel("Date")
+    ax_dpm.set_ylabel("USD")
+    ax_dpm.plot(ScrubGrass.dates, ScrubGrass.daily_per_miner_rev, 'g-', linewidth=1, label="Revenue")
+    ax_dpm.plot(ScrubGrass.dates, -np.array(ScrubGrass.daily_per_miner_cost), 'r-', linewidth=1, label="Cost")
+    ax_dpm.plot(ScrubGrass.dates, ScrubGrass.daily_per_miner_net, 'b-', linewidth=1, label="Net")
+    ax_dpm.legend()
     ############################################################################
     ############################################################################
     ############################################################################
 
-    f, (a0, a1) = plt.subplots(2,1, gridspec_kw = {'height_ratios':[1, 3]})
+    f, (a0, a1) = plt.subplots(2,1, gridspec_kw = {'height_ratios':[3, 4]})
     # plt.subplot(211)
     plt.xticks(rotation=60)
     # plt.ylabel("Cummulative Revenue")
